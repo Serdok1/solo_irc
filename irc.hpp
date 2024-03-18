@@ -1,7 +1,7 @@
 #ifndef IRC_HPP
     #define IRC_HPP
+    
 
-    #include "Server.hpp"
     #include <netinet/in.h>
     #include <stdio.h>
     #include <stdlib.h>
