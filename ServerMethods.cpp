@@ -20,6 +20,10 @@ int Server::getNewSocket(void){
     return this->_new_socket;
 }
 
+int Server::getSocketFd(void){
+    return this->_sockfd;
+}
+
 void Server::setServerPassword(std::string server_password){
     this->_server_password = server_password;
 }
@@ -38,4 +42,8 @@ void Server::setSocketAddressLength(socklen_t sockaddr_len){
 
 void Server::setNewSocket(int new_socket){
     this->_new_socket = new_socket;
+}
+
+void Server::setSocketFd(int sockfd){
+    this->_sockfd = sockfd;
 }

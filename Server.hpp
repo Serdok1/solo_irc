@@ -20,12 +20,14 @@ class Server{
         struct sockaddr_in      getSocketAddress(void);
         socklen_t               getSocketAddressLength(void);
         int                     getNewSocket(void);
+        int                     getSocketFd(void);
         //setter methods
         void                    setPortNumber(int port_number);
         void                    setServerPassword(std::string server_password);
         void                    setSocketAddress(struct sockaddr_in sockaddr);
         void                    setSocketAddressLength(socklen_t sockaddr_len);
         void                    setNewSocket(int new_socket);
+        void                    setSocketFd(int sockfd);
         //other funcs
         int                     createSocket(void);
         int                     setSocketOpt(void);
