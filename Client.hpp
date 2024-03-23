@@ -11,6 +11,7 @@ class Client {
         std::string     _real_name;
         std::string     _hostname;
     public:
+        Client();
         Client(int client_fd);
         ~Client();
 

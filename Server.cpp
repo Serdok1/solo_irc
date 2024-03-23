@@ -63,3 +63,32 @@ int Server::acceptSocket(void)
         return -1;
     return 0;
 }
+
+void Server::addNewClient(Client &client)
+{
+    this->_client_array.push_back(client);
+}
+
+void Server::deleteClient(int socket_fd)
+{
+    for(int i = 0; i < (int)this->_client_array.size(); i++)
+    {
+        if(this->_client_array[i].getClientFd() == socket_fd)
+        {
+            this->_client_array.erase(this->_client_array.begin() + i);
+            break;
+        }
+    }
+}
+
+Client *Server::findClient(int socket_fd)
+{
+    for(int i = 0; i < (int)this->_client_array.size(); i++)
+    {
+        if(this->_client_array[i].getClientFd() == socket_fd)
+        {
+            return &this->_client_array[i];
+        }
+    }
+    return NULL;
+}

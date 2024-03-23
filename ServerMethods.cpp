@@ -24,6 +24,13 @@ int Server::getSocketFd(void){
     return this->_sockfd;
 }
 
+std::vector<Client> Server::getClientArray(void){
+    return this->_client_array;
+}
+std::vector<Channel> Server::getChannelArray(void){
+    return this->_channel_array;
+}
+
 void Server::setServerPassword(std::string server_password){
     this->_server_password = server_password;
 }
@@ -46,4 +53,12 @@ void Server::setNewSocket(int new_socket){
 
 void Server::setSocketFd(int sockfd){
     this->_sockfd = sockfd;
+}
+
+void Server::setClientArray(std::vector<Client> clientArray){
+    this->_client_array = clientArray;
+}
+
+void Server::setChannelArray(std::vector<Channel> channelArray){
+    this->_channel_array = channelArray;
 }

@@ -1,5 +1,7 @@
 #include "Client.hpp"
 
+Client::Client(){}
+
 Client::Client(int client_fd): _client_fd(client_fd){}
 
 Client::~Client(){}
@@ -29,11 +31,11 @@ void Client::setClientFd(int socket_fd) {
 }
 
 void Client::setNickname(std::string nickname) {
-    this->_nickname = _nickname;
+    this->_nickname = nickname;
 }
 
 void Client::setUsername(std::string username) {
-    this->_username = _username;
+    this->_username = username;
 }
 
 void Client::setRealName(std::string realName) {
