@@ -48,11 +48,32 @@ void handleClient(Server *server, int *i, fd_set *current_sockets, int *max_sock
                 iss >> nick;
                 tempClient.setNickname(nick);
             }
-            else if (token == "PASS")
+            else if (token == "PASS" && !tempClient.getIsAuth() && tempClient.getPassword().empty())
+            {
                 iss >> pass;
-            else if (token == "USER"){
+                if (!pass.empty() && pass[0] == ':')
+                    pass.erase(0, 1);
+                if(!pass.empty() && !pass.compare(server->getServerPassword()))
+                    tempClient.setPassword(pass);
+            }
+            else if (token == "USER" && !tempClient.getIsAuth()){
                 iss >> user;
                 tempClient.setUsername(user);
+            }
+            else if (token == "JOIN") {
+                std::string channelName, channelPassword;
+                iss >> channelName;
+                iss >> channelPassword;
+                if (!channelName.empty() && !channelPassword.empty())
+                    server->joinCommand(tempClient, channelName, channelPassword);
+                else
+                    send(tempClient.getClientFd(), "missing password\r\n", 19, 0);
+            }
+            if(!tempClient.getIsAuth() && !tempClient.getPassword().empty() && !tempClient.getUsername().empty() && !tempClient.getNickname().empty())
+            {
+                tempClient.setIsAuth(true);
+                std::string message = LOGIN(tempClient.getNickname(), tempClient.getUsername());
+                send(tempClient.getClientFd(), message.c_str(), message.length(), 0);
             }
         }
     }

@@ -5,6 +5,9 @@
     #include "Client.hpp"
     #include "Channel.hpp"
 
+class Client;
+class Channel;
+
 class Server{
     private:
         int                     _port_number;
@@ -15,6 +18,7 @@ class Server{
         int                     _new_socket;
         std::vector<Client>     _client_array;
         std::vector<Channel>    _channel_array;
+        std::string             _hostname;
     public:
         Server(int port_number, std::string server_password);
         ~Server();
@@ -27,6 +31,7 @@ class Server{
         int                     getSocketFd(void);
         std::vector<Client>     getClientArray(void);
         std::vector<Channel>    getChannelArray(void);
+        std::string             getHostname(void);
         //setter methods
         void                    setPortNumber(int port_number);
         void                    setServerPassword(std::string server_password);
@@ -36,6 +41,7 @@ class Server{
         void                    setSocketFd(int sockfd);
         void                    setClientArray(std::vector<Client> clientArray);
         void                    setChannelArray(std::vector<Channel> channelArray);
+        void                    setHostname(std::string hostname);
         //other funcs
         int                     createSocket(void);
         int                     setSocketOpt(void);
@@ -47,6 +53,7 @@ class Server{
         void                    addNewClient(Client &client);
         void                    deleteClient(int socket_fd);
         Client                  *findClient(int socket_fd);
+        void                    joinCommand(Client &client, std::string channelName, std::string channelPassword);
 };
 
 #endif

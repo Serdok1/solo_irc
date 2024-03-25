@@ -2,7 +2,7 @@
 
 Client::Client(){}
 
-Client::Client(int client_fd): _client_fd(client_fd){}
+Client::Client(int client_fd): _client_fd(client_fd), _is_auth(false){}
 
 Client::~Client(){}
 
@@ -26,6 +26,14 @@ std::string Client::getHostname() {
     return (this->_hostname);
 }
 
+std::string Client::getPassword(){
+    return this->_password;
+}
+
+bool Client::getIsAuth(){
+    return this->_is_auth;
+}
+
 void Client::setClientFd(int socket_fd) {
     this->_client_fd = socket_fd;
 }
@@ -46,3 +54,10 @@ void Client::setHostname(std::string hostname) {
     this->_hostname = hostname;
 }
 
+void Client::setIsAuth(bool is_auth){
+    this->_is_auth = is_auth;
+}
+
+void Client::setPassword(std::string password){
+    this->_password = password;
+}

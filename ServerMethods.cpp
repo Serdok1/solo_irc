@@ -31,6 +31,10 @@ std::vector<Channel> Server::getChannelArray(void){
     return this->_channel_array;
 }
 
+std::string Server::getHostname(void){
+    return this->_hostname;
+}
+
 void Server::setServerPassword(std::string server_password){
     this->_server_password = server_password;
 }
@@ -61,4 +65,8 @@ void Server::setClientArray(std::vector<Client> clientArray){
 
 void Server::setChannelArray(std::vector<Channel> channelArray){
     this->_channel_array = channelArray;
+}
+
+void Server::setHostname(std::string hostname){
+    this->_hostname = hostname;
 }

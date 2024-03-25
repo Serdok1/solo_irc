@@ -8,6 +8,10 @@ Server::Server(int port_number, std::string server_password): _port_number(port_
         exit(EXIT_FAILURE);
     }
     this->_sockaddr_len = sizeof(this->_sockaddr);
+    char str_h[256];
+    gethostname(str_h, sizeof(str_h));
+    std::string _h(str_h);
+    setHostname(_h);
     std::cout << "Server created successfully!" << std::endl;
 }
 
@@ -91,4 +95,55 @@ Client *Server::findClient(int socket_fd)
         }
     }
     return NULL;
+}
+
+void Server::joinCommand(Client &client, std::string channelName, std::string channelPassword) { 
+    std::string mess;
+    if((int)_channel_array.size() == 0) {
+        _channel_array.push_back(Channel(channelName, channelPassword, client));
+        _channel_array[0].setOperator(client.getClientFd());
+        mess = "JOIN You are now in channel "  + channelName +" \r\n";
+
+    }
+    else {
+        int controlFlag1 = -1;
+        int controlFlag2 = -1;
+        for (int i = 0; i < (int)_channel_array.size(); i++)
+        {
+            if(!_channel_array[i].getName().compare(channelName))
+            {
+                for (int k = 0; k < (int)_channel_array[i].channelClients.size(); k++)
+                {
+                    if (!_channel_array[i].channelClients[k].getNickname().compare(client.getNickname()))
+                    {
+                        controlFlag1 = 10;
+                        controlFlag2 = 10;
+                        mess = "JOIN You are now in channel "  + channelName +" \r\n";
+                        return;
+                    }
+                }
+                if(controlFlag1 == -1)
+                {
+                    if((!_channel_array[i].getPassword().compare(channelPassword)))
+                    { 
+                        _channel_array[i].channelClients.push_back(client);
+                        mess = "JOIN You are now in channel "  + channelName +" \r\n";
+                    }
+                    else
+                        mess = BADCHANNEL(channelName);
+                    controlFlag2 = 10;
+                }
+                break;
+            }
+        }
+        if(controlFlag2 == -1)
+        {
+            _channel_array.push_back(Channel(channelName, channelPassword, client));
+            _channel_array[(int)_channel_array.size() - 1].setOperator(client.getClientFd());
+            mess = "JOIN You are now in channel "  + channelName +" \r\n";
+
+        }
+    }
+    std::string buffer = ":" + client.getNickname() + "!" + client.getUsername() + "@" + getHostname() + ": "  +  mess + "\r\n";;
+    send(client.getClientFd(), buffer.c_str(), buffer.length(), 0);
 }

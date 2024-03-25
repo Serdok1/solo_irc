@@ -39,6 +39,8 @@
         "bitset": "c",
         "oslo.h": "c",
         "stdio.h": "c",
-        "iostream": "cpp"
+        "iostream": "cpp",
+        "filesystem": "cpp",
+        "stdexcept": "cpp"
     }
 }
