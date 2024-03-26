@@ -85,7 +85,7 @@ void Server::deleteClient(int socket_fd)
     }
 }
 
-Client *Server::findClient(int socket_fd)
+Client *Server::findClient_WFD(int socket_fd)
 {
     for(int i = 0; i < (int)this->_client_array.size(); i++)
     {
@@ -94,7 +94,19 @@ Client *Server::findClient(int socket_fd)
             return &this->_client_array[i];
         }
     }
-    return NULL;
+    return nullptr;
+}
+
+Client *Server::findClient_WNAME(std::string name)
+{
+    for(int i = 0; i < (int)this->_client_array.size(); i++)
+    {
+        if(this->_client_array[i].getNickname() == name)
+        {
+            return &this->_client_array[i];
+        }
+    }
+    return nullptr;
 }
 
 void Server::joinCommand(Client &client, std::string channelName, std::string channelPassword) { 
@@ -106,8 +118,8 @@ void Server::joinCommand(Client &client, std::string channelName, std::string ch
 
     }
     else {
-        int controlFlag1 = -1;
-        int controlFlag2 = -1;
+        bool controlFlag1 = false;
+        bool controlFlag2 = false;
         for (int i = 0; i < (int)_channel_array.size(); i++)
         {
             if(!_channel_array[i].getName().compare(channelName))
@@ -116,13 +128,13 @@ void Server::joinCommand(Client &client, std::string channelName, std::string ch
                 {
                     if (!_channel_array[i].channelClients[k].getNickname().compare(client.getNickname()))
                     {
-                        controlFlag1 = 10;
-                        controlFlag2 = 10;
+                        controlFlag1 = true;
+                        controlFlag2 = true;
                         mess = "JOIN You are now in channel "  + channelName +" \r\n";
                         return;
                     }
                 }
-                if(controlFlag1 == -1)
+                if(controlFlag1 == false)
                 {
                     if((!_channel_array[i].getPassword().compare(channelPassword)))
                     { 
@@ -131,12 +143,12 @@ void Server::joinCommand(Client &client, std::string channelName, std::string ch
                     }
                     else
                         mess = BADCHANNEL(channelName);
-                    controlFlag2 = 10;
+                    controlFlag2 = true;
                 }
                 break;
             }
         }
-        if(controlFlag2 == -1)
+        if(controlFlag2 == false)
         {
             _channel_array.push_back(Channel(channelName, channelPassword, client));
             _channel_array[(int)_channel_array.size() - 1].setOperator(client.getClientFd());
@@ -146,4 +158,60 @@ void Server::joinCommand(Client &client, std::string channelName, std::string ch
     }
     std::string buffer = ":" + client.getNickname() + "!" + client.getUsername() + "@" + getHostname() + ": "  +  mess + "\r\n";;
     send(client.getClientFd(), buffer.c_str(), buffer.length(), 0);
+}
+
+void Server::msgCommand(Client &client, std::string send_to, std::string buffer){
+    if (send_to[0] == '#') 
+    {
+        Channel &tempChannel = *findChannel(send_to);
+        if(&tempChannel != nullptr)
+        {
+            std::string identity = ":" + client.getNickname() + "!" + client.getUsername() + "@" + getHostname() + ": ";
+	        std::string message = identity + buffer + "\r\n";
+            for (int i = 0; i < (int)tempChannel.channelClients.size(); i++)
+            {
+                if (checkChannel(client, tempChannel)) {
+                    if (tempChannel.channelClients[i].getClientFd() != client.getClientFd() && tempChannel.channelClients[i].getClientFd() != 0)
+                        send(tempChannel.channelClients[i].getClientFd(), message.c_str(), message.length(), 0);
+                }
+            }
+        }
+        else {
+            std::string message = NO_SUCH_CHANNEL(client.getNickname(), send_to);
+            send(client.getClientFd(), message.c_str(), message.length(), 0);
+        }
+    }
+    else {
+        Client &tempClient = *findClient_WNAME(send_to);
+        if (&tempClient != nullptr) {
+            std::string identity = ":" + client.getNickname() + "!" + client.getUsername() + "@" + getHostname() + ": ";
+            std::string mess = identity + buffer + "\r\n";
+            send(tempClient.getClientFd(), mess.c_str(), mess.length(), 0);
+        }
+        else{
+            std::string mess = NO_NICKNAME(client.getNickname() ,send_to);
+            send(client.getClientFd(), mess.c_str(), mess.length(), 0);
+        }
+    }
+}
+
+int Server::checkChannel(Client &client, Channel &channel) {
+    for (int i = 0; i < (int)channel.channelClients.size(); i++)
+    {
+        if (!channel.channelClients[i].getNickname().compare(client.getNickname()))
+            return (1);
+    }
+    return (0);
+}
+
+Channel *Server::findChannel(std::string channel_name)
+{
+    for(int i = 0; i < (int)this->_channel_array.size(); i++)
+    {
+        if(this->_channel_array[i].getName() == channel_name)
+        {
+            return &this->_channel_array[i];
+        }
+    }
+    return nullptr;
 }

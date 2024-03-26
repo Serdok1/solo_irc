@@ -52,8 +52,12 @@ class Server{
         int                     acceptSocket(void);
         void                    addNewClient(Client &client);
         void                    deleteClient(int socket_fd);
-        Client                  *findClient(int socket_fd);
+        Client                  *findClient_WFD(int socket_fd);
+        Client                  *findClient_WNAME(std::string name);
         void                    joinCommand(Client &client, std::string channelName, std::string channelPassword);
+        void                    msgCommand(Client &client, std::string send_to, std::string buffer);
+        Channel                 *findChannel(std::string channel_name);
+        int                     checkChannel(Client &client, Channel &channel);
 };
 
 #endif

@@ -42,7 +42,7 @@ void handleClient(Server *server, int *i, fd_set *current_sockets, int *max_sock
         std::cout << "----------\n" << buffer << "----------" << std::endl;
         std::istringstream iss(buffer);
         std::string token, user, pass, nick;
-        Client &tempClient = *server->findClient(*i);
+        Client &tempClient = *server->findClient_WFD(*i);
         while (iss >> token) {
             if (token == "NICK"){
                 iss >> nick;
@@ -60,7 +60,7 @@ void handleClient(Server *server, int *i, fd_set *current_sockets, int *max_sock
                 iss >> user;
                 tempClient.setUsername(user);
             }
-            else if (token == "JOIN") {
+            else if (token == "JOIN" && tempClient.getIsAuth()) {
                 std::string channelName, channelPassword;
                 iss >> channelName;
                 iss >> channelPassword;
@@ -68,6 +68,11 @@ void handleClient(Server *server, int *i, fd_set *current_sockets, int *max_sock
                     server->joinCommand(tempClient, channelName, channelPassword);
                 else
                     send(tempClient.getClientFd(), "missing password\r\n", 19, 0);
+            }
+            else if (token == "PRIVMSG") {
+                std::string send_to;
+                iss >> send_to;
+                server->msgCommand(tempClient, send_to, buffer);
             }
             if(!tempClient.getIsAuth() && !tempClient.getPassword().empty() && !tempClient.getUsername().empty() && !tempClient.getNickname().empty())
             {
