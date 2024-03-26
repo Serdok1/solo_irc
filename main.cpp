@@ -17,6 +17,39 @@ void acceptSetClient(Server *server, fd_set *current_sockets, int *max_socket){
             "socket %d\n", inet_ntoa(server->getSocketAddress().sin_addr), server->getNewSocket());
 }
 
+void handleQuit(Server *server, int *i, fd_set *current_sockets, int *max_socket)
+{
+    close(*i);
+    server->deleteClient(*i);
+    server->deleteChannelClient(*i);
+    FD_CLR(*i, current_sockets);
+    (*max_socket)--;
+}
+
+void handlePart(Server *server, Client *client, std::string part_name)
+{
+    Channel &tempChannel = *server->findChannel(part_name);
+    if(&tempChannel != nullptr)
+    {
+        if(server->checkChannel(*client, tempChannel))
+        {
+            server->deleteChannelClient(client->getClientFd());
+            std::string mess = ":" + client->getNickname() + "!" + client->getUsername() + "@" + client->getHostname() + " PART " + tempChannel.getName() + "\r\n";
+            send(client->getClientFd(), mess.c_str(), mess.length(), 0);
+        }
+        else
+        {
+            std::string mess = NOTONCHANNEL(client->getNickname(), tempChannel.getName());
+            send(client->getClientFd(), mess.c_str(), mess.length(), 0);
+        }
+    }
+    else
+    {
+        std::string mess = NO_SUCH_CHANNEL(client->getNickname(), tempChannel.getName());
+        send(client->getClientFd(), mess.c_str(), mess.length(), 0);
+    }
+}
+
 void handleClient(Server *server, int *i, fd_set *current_sockets, int *max_socket){
     char buffer[1028] = {0};
     size_t read_value;
@@ -24,17 +57,11 @@ void handleClient(Server *server, int *i, fd_set *current_sockets, int *max_sock
     {
         if(read_value == 0){
             std::cout << "client left the server, socket no: " << i << std::endl;
-            close(*i);
-            server->deleteClient(*i);
-            FD_CLR(*i, current_sockets);
-            (*max_socket)--;
+            handleQuit(server, i, current_sockets, max_socket);
         }
         else{
             perror("recv error");
-            close(*i);
-            server->deleteClient(*i);
-            FD_CLR(*i, current_sockets);
-            (*max_socket)--;
+            handleQuit(server, i, current_sockets, max_socket);
             exit(EXIT_FAILURE);
         }
     }else{
@@ -69,10 +96,19 @@ void handleClient(Server *server, int *i, fd_set *current_sockets, int *max_sock
                 else
                     send(tempClient.getClientFd(), "missing password\r\n", 19, 0);
             }
-            else if (token == "PRIVMSG") {
+            else if (token == "PRIVMSG" && tempClient.getIsAuth()) {
                 std::string send_to;
                 iss >> send_to;
                 server->msgCommand(tempClient, send_to, buffer);
+            }
+            else if(token == "PART" && tempClient.getIsAuth())
+            {
+                std::string partName;
+                iss >> partName;
+                handlePart(server, &tempClient, partName);
+            }
+            else if(token == "QUIT"){
+                handleQuit(server, i, current_sockets, max_socket);
             }
             if(!tempClient.getIsAuth() && !tempClient.getPassword().empty() && !tempClient.getUsername().empty() && !tempClient.getNickname().empty())
             {
@@ -94,13 +130,13 @@ int main(int ac, char **av){
     if(server->createSocket() < 0)
     {
         perror("socket create error");
-        exit(EXIT_FAILURE);
+        /* exit(EXIT_FAILURE);
     }
     
     if(server->setSocketOpt() < 0)
     {
         perror("sockopt error");
-        exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE); */
     }
 
     if(server->setNonBlock() < 0)
@@ -154,12 +190,12 @@ int main(int ac, char **av){
                 }
             }
         }
-        std::cout << (int)server->getClientArray().size() << std::endl;
+        /* std::cout << (int)server->getClientArray().size() << std::endl;
         for(int i = 0; i < (int)server->getClientArray().size(); i++)
         {
             std::cout<< "Username: " << server->getClientArray()[i].getUsername()\
             << " Nickname: " << server->getClientArray()[i].getNickname() << " socket_fd: "\
             << server->getClientArray()[i].getClientFd() << std::endl;
-        }
+        } */
     }
 }

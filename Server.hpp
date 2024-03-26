@@ -58,6 +58,7 @@ class Server{
         void                    msgCommand(Client &client, std::string send_to, std::string buffer);
         Channel                 *findChannel(std::string channel_name);
         int                     checkChannel(Client &client, Channel &channel);
+        void                    deleteChannelClient(int client_fd);
 };
 
 #endif

@@ -215,3 +215,15 @@ Channel *Server::findChannel(std::string channel_name)
     }
     return nullptr;
 }
+
+void Server::deleteChannelClient(int client_fd)
+{
+    for(int i = 0; i < (int)this->_channel_array.size(); i++)
+    {
+        for(int j = 0; j < (int)this->_channel_array[i].channelClients.size(); j++)
+        {
+            if(this->_channel_array[i].channelClients[j].getClientFd() == client_fd)
+                this->_channel_array[i].channelClients.erase(this->_channel_array[i].channelClients.begin() + j);
+        }
+    }
+}
