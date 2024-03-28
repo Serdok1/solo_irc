@@ -21,33 +21,9 @@ void handleQuit(Server *server, int *i, fd_set *current_sockets, int *max_socket
 {
     close(*i);
     server->deleteClient(*i);
-    server->deleteChannelClient(*i);
+    server->clearChannelClient(*i);
     FD_CLR(*i, current_sockets);
     (*max_socket)--;
-}
-
-void handlePart(Server *server, Client *client, std::string part_name)
-{
-    Channel &tempChannel = *server->findChannel(part_name);
-    if(&tempChannel != nullptr)
-    {
-        if(server->checkChannel(*client, tempChannel))
-        {
-            server->deleteChannelClient(client->getClientFd());
-            std::string mess = ":" + client->getNickname() + "!" + client->getUsername() + "@" + client->getHostname() + " PART " + tempChannel.getName() + "\r\n";
-            send(client->getClientFd(), mess.c_str(), mess.length(), 0);
-        }
-        else
-        {
-            std::string mess = NOTONCHANNEL(client->getNickname(), tempChannel.getName());
-            send(client->getClientFd(), mess.c_str(), mess.length(), 0);
-        }
-    }
-    else
-    {
-        std::string mess = NO_SUCH_CHANNEL(client->getNickname(), tempChannel.getName());
-        send(client->getClientFd(), mess.c_str(), mess.length(), 0);
-    }
 }
 
 void handleClient(Server *server, int *i, fd_set *current_sockets, int *max_socket){
@@ -101,11 +77,30 @@ void handleClient(Server *server, int *i, fd_set *current_sockets, int *max_sock
                 iss >> send_to;
                 server->msgCommand(tempClient, send_to, buffer);
             }
+            else if (token == "NOTICE" && tempClient.getIsAuth())
+            {
+                std::string send_to;
+                iss >> send_to;
+                server->msgCommand(tempClient, send_to, buffer);
+            }
             else if(token == "PART" && tempClient.getIsAuth())
             {
                 std::string partName;
                 iss >> partName;
-                handlePart(server, &tempClient, partName);
+                if (partName[0] != '#' && !partName.empty())
+                    partName = "#" + partName;
+                if(!partName.empty())
+                    server->partCommand(&tempClient, partName);
+            }
+            else if(token == "KICK" && tempClient.getIsAuth())
+            {
+                std::string channelName, nickToKick;
+                iss >> channelName;
+                if (channelName[0] != '#' && !channelName.empty())
+                    channelName = "#" + channelName;
+                iss >> nickToKick;
+                if (!channelName.empty() && !nickToKick.empty())
+                    server->kickCommand(tempClient, channelName, nickToKick);
             }
             else if(token == "QUIT"){
                 handleQuit(server, i, current_sockets, max_socket);
@@ -130,13 +125,13 @@ int main(int ac, char **av){
     if(server->createSocket() < 0)
     {
         perror("socket create error");
-        /* exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE);
     }
     
     if(server->setSocketOpt() < 0)
     {
         perror("sockopt error");
-        exit(EXIT_FAILURE); */
+        exit(EXIT_FAILURE);
     }
 
     if(server->setNonBlock() < 0)

@@ -163,7 +163,7 @@ void Server::joinCommand(Client &client, std::string channelName, std::string ch
 void Server::msgCommand(Client &client, std::string send_to, std::string buffer){
     if (send_to[0] == '#') 
     {
-        Channel &tempChannel = *findChannel(send_to);
+        Channel &tempChannel = *getFindChannel(send_to);
         if(&tempChannel != nullptr)
         {
             std::string identity = ":" + client.getNickname() + "!" + client.getUsername() + "@" + getHostname() + ": ";
@@ -204,7 +204,7 @@ int Server::checkChannel(Client &client, Channel &channel) {
     return (0);
 }
 
-Channel *Server::findChannel(std::string channel_name)
+Channel *Server::getFindChannel(std::string channel_name)
 {
     for(int i = 0; i < (int)this->_channel_array.size(); i++)
     {
@@ -216,8 +216,19 @@ Channel *Server::findChannel(std::string channel_name)
     return nullptr;
 }
 
-void Server::deleteChannelClient(int client_fd)
+void Server::deleteChannelClient(int client_fd, Channel &channel)
 {
+    //oper kontrolü
+    for(int j = 0; j < (int)channel.channelClients.size(); j++)
+    {
+        if(channel.channelClients[j].getClientFd() == client_fd)
+            channel.channelClients.erase(channel.channelClients.begin() + j);
+    }
+}
+
+void Server::clearChannelClient(int client_fd)
+{
+    //oper kontrolü
     for(int i = 0; i < (int)this->_channel_array.size(); i++)
     {
         for(int j = 0; j < (int)this->_channel_array[i].channelClients.size(); j++)
@@ -225,5 +236,61 @@ void Server::deleteChannelClient(int client_fd)
             if(this->_channel_array[i].channelClients[j].getClientFd() == client_fd)
                 this->_channel_array[i].channelClients.erase(this->_channel_array[i].channelClients.begin() + j);
         }
+    }
+}
+
+void Server::partCommand(Client *client, std::string part_name)
+{
+    Channel &tempChannel = *getFindChannel(part_name);
+    if(&tempChannel != nullptr)
+    {
+        if(checkChannel(*client, tempChannel))
+        {
+            deleteChannelClient(client->getClientFd(), tempChannel);
+            std::string mess = ":" + client->getNickname() + "!" + client->getUsername() + "@" + client->getHostname() + " PART " + tempChannel.getName() + "\r\n";
+            send(client->getClientFd(), mess.c_str(), mess.length(), 0);
+        }
+        else
+        {
+            std::string mess = NOTONCHANNEL(client->getNickname(), tempChannel.getName());
+            send(client->getClientFd(), mess.c_str(), mess.length(), 0);
+        }
+    }
+    else
+    {
+        std::string mess = NO_SUCH_CHANNEL(client->getNickname(), part_name);
+        send(client->getClientFd(), mess.c_str(), mess.length(), 0);
+    }
+}
+
+void Server::kickCommand(Client &client, std::string channel_name, std::string client_to_kick)
+{
+    Channel &tempChannel = *getFindChannel(channel_name);
+    Client &clientToKick = *findClient_WNAME(client_to_kick);
+    if(&tempChannel != nullptr)
+    {
+        if(&clientToKick != nullptr)
+        {
+            if(checkChannel(clientToKick, tempChannel))
+            {
+                deleteChannelClient(clientToKick.getClientFd(), tempChannel);
+                std::string mess = ":" + client.getNickname() + "!" + client.getUsername() + "@" + client.getHostname() + " KICK " + tempChannel.getName() + " " + clientToKick.getNickname() + "\r\n";
+                send(clientToKick.getClientFd(), mess.c_str(), mess.length(), 0);
+                for(int i = 0; i < (int)tempChannel.channelClients.size(); i++)
+                    send(tempChannel.channelClients[i].getClientFd(), mess.c_str(), mess.length(), 0);
+            }
+            else
+            {
+                //channel içerisinde kicklenen client yok
+            }
+        }
+        else
+        {
+            //kicklenecek client yok
+        }
+    }
+    else
+    {
+        //channel yok
     }
 }

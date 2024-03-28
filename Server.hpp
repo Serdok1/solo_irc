@@ -56,9 +56,12 @@ class Server{
         Client                  *findClient_WNAME(std::string name);
         void                    joinCommand(Client &client, std::string channelName, std::string channelPassword);
         void                    msgCommand(Client &client, std::string send_to, std::string buffer);
-        Channel                 *findChannel(std::string channel_name);
+        Channel                 *getFindChannel(std::string channel_name);
         int                     checkChannel(Client &client, Channel &channel);
-        void                    deleteChannelClient(int client_fd);
+        void                    deleteChannelClient(int client_fd, Channel &channel);
+        void                    clearChannelClient(int client_fd);
+        void                    kickCommand(Client &client, std::string channel_name, std::string nick_to_kick);
+        void                    partCommand(Client *client, std::string part_name);
 };
 
 #endif
