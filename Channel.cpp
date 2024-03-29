@@ -24,8 +24,8 @@ std::string Channel::getTopic() {
     return (_topic);
 }
 
-int Channel::getOperator() {
-    return (this->_operator);
+std::vector<Client> Channel::getOperatorArray() {
+    return (this->_operator_array);
 }
 
 void Channel::setName(std::string name)
@@ -43,8 +43,8 @@ void Channel::setTopic(std::string topic) {
 }
 
 
-void Channel::setOperator(int operator_fd) {
-    this->_operator = operator_fd;
+void Channel::addOperator(Client &client) {
+    this->_operator_array.push_back(client);
 }
 
 

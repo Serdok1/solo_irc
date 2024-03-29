@@ -58,6 +58,11 @@ void handleClient(Server *server, int *i, fd_set *current_sockets, int *max_sock
                     pass.erase(0, 1);
                 if(!pass.empty() && !pass.compare(server->getServerPassword()))
                     tempClient.setPassword(pass);
+                else
+                {
+                    std::string mess = PASS_ERR(tempClient.getNickname());
+                    send(tempClient.getClientFd(), mess.c_str(), mess.length(), 0);
+                }
             }
             else if (token == "USER" && !tempClient.getIsAuth()){
                 iss >> user;

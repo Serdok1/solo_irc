@@ -7,10 +7,10 @@ class Client;
 
 class Channel{
     private:
-        std::string     _name;
-        std::string     _password;
-        std::string     _topic;
-        int             _operator;
+        std::string             _name;
+        std::string             _password;
+        std::string             _topic;
+        std::vector<Client>     _operator_array;
     public:
         Channel(std::string name, std::string password, Client &client);
         Channel(std::string name, std::string password);
@@ -21,11 +21,11 @@ class Channel{
         std::string             getName(void);
         std::string             getPassword(void);
         std::string             getTopic();
-        int                     getOperator();
+        std::vector<Client>     getOperatorArray();
         void                    setName(std::string name);
         void                    setPassword(std::string password);
         void                    setTopic(std::string topic);
-        void                    setOperator(int operatorFd);
+        void                    addOperator(Client &client);
 };
 
 #endif

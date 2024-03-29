@@ -110,10 +110,10 @@ Client *Server::findClient_WNAME(std::string name)
 }
 
 void Server::joinCommand(Client &client, std::string channelName, std::string channelPassword) { 
-    std::string mess;
+    /* std::string mess;
     if((int)_channel_array.size() == 0) {
         _channel_array.push_back(Channel(channelName, channelPassword, client));
-        _channel_array[0].setOperator(client.getClientFd());
+        _channel_array[0].addOperator(client);
         mess = "JOIN You are now in channel "  + channelName +" \r\n";
 
     }
@@ -151,13 +151,46 @@ void Server::joinCommand(Client &client, std::string channelName, std::string ch
         if(controlFlag2 == false)
         {
             _channel_array.push_back(Channel(channelName, channelPassword, client));
-            _channel_array[(int)_channel_array.size() - 1].setOperator(client.getClientFd());
+            _channel_array[(int)_channel_array.size() - 1].addOperator(client);
             mess = "JOIN You are now in channel "  + channelName +" \r\n";
 
         }
     }
     std::string buffer = ":" + client.getNickname() + "!" + client.getUsername() + "@" + getHostname() + ": "  +  mess + "\r\n";;
-    send(client.getClientFd(), buffer.c_str(), buffer.length(), 0);
+    send(client.getClientFd(), buffer.c_str(), buffer.length(), 0); */
+    std::string mess;
+    Channel &tempChannel = *getFindChannel(channelName);
+    if(&tempChannel == nullptr)
+    {
+        _channel_array.push_back(Channel(channelName, channelPassword, client));
+        _channel_array[0].addOperator(client);
+        mess = "JOIN You are now in channel "  + channelName +" \r\n";
+        std::string buffer = ":" + client.getNickname() + "!" + client.getUsername() + "@" + getHostname() + ": "  +  mess + "\r\n";;
+        send(client.getClientFd(), buffer.c_str(), buffer.length(), 0);
+    }
+    else
+    {
+        if(checkChannel(client, tempChannel))
+        {
+            mess = USERONCHANNEL(client.getNickname(), tempChannel.getName());
+            send(client.getClientFd(), mess.c_str(), mess.length(), 0);
+        }
+        else
+        {
+            if((!tempChannel.getPassword().compare(channelPassword)))
+            { 
+                tempChannel.channelClients.push_back(client);
+                mess = "JOIN You are now in channel "  + channelName +" \r\n";
+                std::string buffer = ":" + client.getNickname() + "!" + client.getUsername() + "@" + getHostname() + ": "  +  mess + "\r\n";;
+                send(client.getClientFd(), buffer.c_str(), buffer.length(), 0);
+            }
+            else
+            {
+                mess = BADCHANNEL(channelName);
+                send(client.getClientFd(), mess.c_str(), mess.length(), 0);
+            }
+        }
+    }
 }
 
 void Server::msgCommand(Client &client, std::string send_to, std::string buffer){
