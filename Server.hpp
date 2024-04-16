@@ -62,6 +62,7 @@ class Server{
         void                    clearChannelClient(int client_fd);
         void                    kickCommand(Client &client, std::string channel_name, std::string nick_to_kick);
         void                    partCommand(Client *client, std::string part_name);
+        void                    checkOperator(Channel &channel, Client &client);
 };
 
 #endif

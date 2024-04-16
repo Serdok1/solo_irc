@@ -21,7 +21,7 @@ class Channel{
         std::string             getName(void);
         std::string             getPassword(void);
         std::string             getTopic();
-        std::vector<Client>     getOperatorArray();
+        std::vector<Client>    &getOperatorArray();
         void                    setName(std::string name);
         void                    setPassword(std::string password);
         void                    setTopic(std::string topic);

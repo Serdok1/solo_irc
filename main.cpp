@@ -1,51 +1,48 @@
 #include "IRC.hpp"
 #include "Server.hpp"
 
-void acceptSetClient(Server *server, fd_set *current_sockets, int *max_socket){
+void acceptSetClient(Server *server, fd_set &current_sockets, int &max_socket){
     if(server->acceptSocket() < 0)
     {
         perror("accept error");
         exit(EXIT_FAILURE);
     }
-    FD_SET(server->getNewSocket(), current_sockets);
-    if(server->getNewSocket() > *max_socket){
-        *max_socket = server->getNewSocket();
+    else{
+        FD_SET(server->getNewSocket(), &current_sockets);
+        if(server->getNewSocket() > max_socket){
+            max_socket = server->getNewSocket();
+        }
+        Client client = Client(server->getNewSocket());
+        server->addNewClient(client);
+        printf("selectServer: new connection from %s on "
+                "socket %d\n", inet_ntoa(server->getSocketAddress().sin_addr), server->getNewSocket());
     }
-    Client client = Client(server->getNewSocket());
-    server->addNewClient(client);
-    printf("selectServer: new connection from %s on "
-            "socket %d\n", inet_ntoa(server->getSocketAddress().sin_addr), server->getNewSocket());
 }
 
-void handleQuit(Server *server, int *i, fd_set *current_sockets, int *max_socket)
+void handleQuit(Server *server, int i, fd_set &current_sockets)
 {
-    close(*i);
-    server->deleteClient(*i);
-    server->clearChannelClient(*i);
-    FD_CLR(*i, current_sockets);
-    (*max_socket)--;
+    close(i);
+    server->clearChannelClient(i);
+    server->deleteClient(i);
+    FD_CLR(i, &current_sockets);
 }
 
-void handleClient(Server *server, int *i, fd_set *current_sockets, int *max_socket){
+void handleClient(Server *server, int i, fd_set &current_sockets){
     char buffer[1028] = {0};
     size_t read_value;
-    if((read_value = recv(*i, buffer, sizeof(buffer) - 1, 0)) <= 0)
+    if((read_value = recv(i, buffer, sizeof(buffer) - 1, 0)) <= 0)
     {
-        if(read_value == 0){
+        if(read_value == 0)
             std::cout << "client left the server, socket no: " << i << std::endl;
-            handleQuit(server, i, current_sockets, max_socket);
-        }
-        else{
+        else
             perror("recv error");
-            handleQuit(server, i, current_sockets, max_socket);
-            exit(EXIT_FAILURE);
-        }
+        handleQuit(server, i, current_sockets);
     }else{
         buffer[read_value] = '\0';
         std::cout << "----------\n" << buffer << "----------" << std::endl;
         std::istringstream iss(buffer);
         std::string token, user, pass, nick;
-        Client &tempClient = *server->findClient_WFD(*i);
+        Client &tempClient = *server->findClient_WFD(i);
         while (iss >> token) {
             if (token == "NICK"){
                 iss >> nick;
@@ -72,6 +69,8 @@ void handleClient(Server *server, int *i, fd_set *current_sockets, int *max_sock
                 std::string channelName, channelPassword;
                 iss >> channelName;
                 iss >> channelPassword;
+                if (channelName[0] != '#' && !channelName.empty())
+                    channelName = "#" + channelName;
                 if (!channelName.empty() && !channelPassword.empty())
                     server->joinCommand(tempClient, channelName, channelPassword);
                 else
@@ -108,7 +107,7 @@ void handleClient(Server *server, int *i, fd_set *current_sockets, int *max_sock
                     server->kickCommand(tempClient, channelName, nickToKick);
             }
             else if(token == "QUIT"){
-                handleQuit(server, i, current_sockets, max_socket);
+                handleQuit(server, i, current_sockets);
             }
             if(!tempClient.getIsAuth() && !tempClient.getPassword().empty() && !tempClient.getUsername().empty() && !tempClient.getNickname().empty())
             {
@@ -162,6 +161,7 @@ int main(int ac, char **av){
 
     fd_set current_sockets, ready_sockets;
     FD_ZERO(&current_sockets);
+    FD_ZERO(&ready_sockets);
     FD_SET(server->getSocketFd(), &current_sockets);
     int max_socket = server->getSocketFd();
     std::string user,nick,pass;
@@ -181,13 +181,19 @@ int main(int ac, char **av){
             {
                 if(i == server->getSocketFd())
                 {
-                    acceptSetClient(server, &current_sockets, &max_socket);
-                    std::cout << "max_socket: " << max_socket << std::endl;
+                    acceptSetClient(server, current_sockets, max_socket);
                 }
                 else
                 {
-                    handleClient(server, &i, &current_sockets, &max_socket);
+                    handleClient(server, i, current_sockets);
                 }
+            }
+        }
+        for(int i = 0; i < (int)server->getChannelArray().size(); i++)
+        {
+            for(int j = 0; j < (int)server->getChannelArray()[i].getOperatorArray().size(); j++)
+            {
+                std::cout << server->getChannelArray()[i].getName() << " operator is: " << server->getChannelArray()[i].getOperatorArray()[j].getNickname() << std::endl;
             }
         }
         /* std::cout << (int)server->getClientArray().size() << std::endl;

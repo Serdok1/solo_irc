@@ -6,6 +6,7 @@ Channel::Channel(std::string name, std::string password): _name(name), _password
 
 Channel::Channel(std::string name, std::string password, Client &client): _name(name), _password(password){
     this->channelClients.push_back(client);
+    this->addOperator(client);
 }
 
 Channel::~Channel(){}
@@ -24,7 +25,7 @@ std::string Channel::getTopic() {
     return (_topic);
 }
 
-std::vector<Client> Channel::getOperatorArray() {
+std::vector<Client> &Channel::getOperatorArray() {
     return (this->_operator_array);
 }
 

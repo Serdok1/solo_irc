@@ -29,7 +29,7 @@ int Server::createSocket(void)
 
 int Server::setSocketOpt(void){
     int opt = 1;
-    if (setsockopt(this->_sockfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
+    if (setsockopt(this->_sockfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(int)) < 0)
         return -1;
     return 0;
 }
@@ -45,6 +45,7 @@ void Server::setAddressProperties(sa_family_t family, in_addr_t address)
     this->_sockaddr.sin_family = family;
     this->_sockaddr.sin_addr.s_addr = htonl(address);
     this->_sockaddr.sin_port = htons(this->_port_number); 
+    memset(&(this->_sockaddr.sin_zero), '\0', 8);
 }
 
 int Server::bindSocket(void)
@@ -56,7 +57,7 @@ int Server::bindSocket(void)
 
 int Server::listenSocket(void)
 {
-    if(listen(this->_sockfd, this->_sockfd))
+    if(listen(this->_sockfd, 10))
         return -1;
     return 0;
 }
@@ -109,61 +110,12 @@ Client *Server::findClient_WNAME(std::string name)
     return nullptr;
 }
 
-void Server::joinCommand(Client &client, std::string channelName, std::string channelPassword) { 
-    /* std::string mess;
-    if((int)_channel_array.size() == 0) {
-        _channel_array.push_back(Channel(channelName, channelPassword, client));
-        _channel_array[0].addOperator(client);
-        mess = "JOIN You are now in channel "  + channelName +" \r\n";
-
-    }
-    else {
-        bool controlFlag1 = false;
-        bool controlFlag2 = false;
-        for (int i = 0; i < (int)_channel_array.size(); i++)
-        {
-            if(!_channel_array[i].getName().compare(channelName))
-            {
-                for (int k = 0; k < (int)_channel_array[i].channelClients.size(); k++)
-                {
-                    if (!_channel_array[i].channelClients[k].getNickname().compare(client.getNickname()))
-                    {
-                        controlFlag1 = true;
-                        controlFlag2 = true;
-                        mess = "JOIN You are now in channel "  + channelName +" \r\n";
-                        return;
-                    }
-                }
-                if(controlFlag1 == false)
-                {
-                    if((!_channel_array[i].getPassword().compare(channelPassword)))
-                    { 
-                        _channel_array[i].channelClients.push_back(client);
-                        mess = "JOIN You are now in channel "  + channelName +" \r\n";
-                    }
-                    else
-                        mess = BADCHANNEL(channelName);
-                    controlFlag2 = true;
-                }
-                break;
-            }
-        }
-        if(controlFlag2 == false)
-        {
-            _channel_array.push_back(Channel(channelName, channelPassword, client));
-            _channel_array[(int)_channel_array.size() - 1].addOperator(client);
-            mess = "JOIN You are now in channel "  + channelName +" \r\n";
-
-        }
-    }
-    std::string buffer = ":" + client.getNickname() + "!" + client.getUsername() + "@" + getHostname() + ": "  +  mess + "\r\n";;
-    send(client.getClientFd(), buffer.c_str(), buffer.length(), 0); */
+void Server::joinCommand(Client &client, std::string channelName, std::string channelPassword) {
     std::string mess;
     Channel &tempChannel = *getFindChannel(channelName);
     if(&tempChannel == nullptr)
     {
         _channel_array.push_back(Channel(channelName, channelPassword, client));
-        _channel_array[0].addOperator(client);
         mess = "JOIN You are now in channel "  + channelName +" \r\n";
         std::string buffer = ":" + client.getNickname() + "!" + client.getUsername() + "@" + getHostname() + ": "  +  mess + "\r\n";;
         send(client.getClientFd(), buffer.c_str(), buffer.length(), 0);
@@ -249,13 +201,34 @@ Channel *Server::getFindChannel(std::string channel_name)
     return nullptr;
 }
 
+void Server::checkOperator(Channel &channel, Client &client)
+{
+    for(int i = 0; i < (int)channel.getOperatorArray().size(); i++)
+    {
+        if(channel.getOperatorArray()[i].getNickname() == client.getNickname())
+            channel.getOperatorArray().erase(channel.getOperatorArray().begin() + i);
+    }
+    if(channel.getOperatorArray().size() == 0 && channel.channelClients.size() != 0)
+        channel.addOperator(channel.channelClients[0]);
+}
+
 void Server::deleteChannelClient(int client_fd, Channel &channel)
 {
     //oper kontrolü
     for(int j = 0; j < (int)channel.channelClients.size(); j++)
     {
-        if(channel.channelClients[j].getClientFd() == client_fd)
+        if(channel.channelClients[j].getClientFd() == client_fd){
             channel.channelClients.erase(channel.channelClients.begin() + j);
+            checkOperator(channel, *findClient_WFD(client_fd));
+        }
+    }
+    if(channel.channelClients.size() == 0)
+    {
+        for(int i = 0; i < (int)_channel_array.size(); i++)
+        {
+            if(channel.getName() == _channel_array[i].getName())
+                _channel_array.erase(_channel_array.begin() + i);
+        }
     }
 }
 
@@ -264,11 +237,14 @@ void Server::clearChannelClient(int client_fd)
     //oper kontrolü
     for(int i = 0; i < (int)this->_channel_array.size(); i++)
     {
-        for(int j = 0; j < (int)this->_channel_array[i].channelClients.size(); j++)
+        deleteChannelClient(client_fd, this->_channel_array[i]);
+        /* for(int j = 0; j < (int)this->_channel_array[i].channelClients.size(); j++)
         {
-            if(this->_channel_array[i].channelClients[j].getClientFd() == client_fd)
+            if(this->_channel_array[i].channelClients[j].getClientFd() == client_fd){
+                checkOperator(this->_channel_array[i], *findClient_WFD(client_fd));
                 this->_channel_array[i].channelClients.erase(this->_channel_array[i].channelClients.begin() + j);
-        }
+            }
+        } */
     }
 }
 
