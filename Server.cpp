@@ -303,3 +303,30 @@ void Server::kickCommand(Client &client, std::string channel_name, std::string c
         //channel yok
     }
 }
+
+void Server::sendTopic(int i, std::string channelName, std::string topicMessage) {
+
+
+     for (int j = 0; j < (int)channelArray.size(); j++) 
+    {
+        printf("+++++%d\n", j);
+        if (channelName == channelArray[j].getName()) 
+        {
+            flag = 1;
+            if (clientArray[i].getSocketFd() == channelArray[j].getOperator())
+            {
+                channelArray[j].setTopic(topicMessage);
+                for (int k = 0; k < (int)channelArray[j].channelClients.size(); k++) {
+                    std::string msg =  ": 332 " + channelArray[j].channelClients[k].getNickname() + " " + channelArray[j].getName() + " : " + channelArray[j].getTopic() + "\r\n";
+                    sendFunct(channelArray[j].channelClients[k].getSocketFd(), msg);
+                }
+                return;
+            }
+            else
+                sendFunct(clientArray[i].getSocketFd(), ": 403 : " +  clientArray[i].getNickname() + "you are not operator!\r\n");
+            break;
+        }
+    }
+    if (flag == 0)
+        sendFunct(clientArray[i].getSocketFd(),": 403 : " + clientArray[i].getNickname() + " There is no channel\r\n");
+}

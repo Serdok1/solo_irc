@@ -106,6 +106,19 @@ void handleClient(Server *server, int i, fd_set &current_sockets){
                 if (!channelName.empty() && !nickToKick.empty())
                     server->kickCommand(tempClient, channelName, nickToKick);
             }
+            else if (token == "TOPIC") {
+                std::string temp, topicMessage, channelName;
+                iss >> channelName;
+                if (!channelName.empty() && channelName[0] != '#')
+                    channelName = "#" + channelName;
+                while (iss >> temp) {
+                    topicMessage += temp;
+                    topicMessage += " ";
+                }
+                if (!topicMessage.empty() && !channelName.empty()) {
+                    sendTopic(i, channelName, topicMessage);
+                }
+            }
             else if(token == "QUIT"){
                 handleQuit(server, i, current_sockets);
             }
