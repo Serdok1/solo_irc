@@ -214,7 +214,6 @@ void Server::checkOperator(Channel &channel, Client &client)
 
 void Server::deleteChannelClient(int client_fd, Channel &channel)
 {
-    //oper kontrolü
     for(int j = 0; j < (int)channel.channelClients.size(); j++)
     {
         if(channel.channelClients[j].getClientFd() == client_fd){
@@ -234,17 +233,9 @@ void Server::deleteChannelClient(int client_fd, Channel &channel)
 
 void Server::clearChannelClient(int client_fd)
 {
-    //oper kontrolü
     for(int i = 0; i < (int)this->_channel_array.size(); i++)
     {
         deleteChannelClient(client_fd, this->_channel_array[i]);
-        /* for(int j = 0; j < (int)this->_channel_array[i].channelClients.size(); j++)
-        {
-            if(this->_channel_array[i].channelClients[j].getClientFd() == client_fd){
-                checkOperator(this->_channel_array[i], *findClient_WFD(client_fd));
-                this->_channel_array[i].channelClients.erase(this->_channel_array[i].channelClients.begin() + j);
-            }
-        } */
     }
 }
 
@@ -272,61 +263,58 @@ void Server::partCommand(Client *client, std::string part_name)
     }
 }
 
-void Server::kickCommand(Client &client, std::string channel_name, std::string client_to_kick)
+void Server::kickCommand(Client &client, std::string channel_name, std::string client_to_kick, int i)
 {
     Channel &tempChannel = *getFindChannel(channel_name);
     Client &clientToKick = *findClient_WNAME(client_to_kick);
+    Client &tempClient = *findClient_WFD(i);
     if(&tempChannel != nullptr)
     {
         if(&clientToKick != nullptr)
         {
-            if(checkChannel(clientToKick, tempChannel))
+            for (int i = 0; i < (int)tempChannel.getOperatorArray().size(); i++)
             {
-                deleteChannelClient(clientToKick.getClientFd(), tempChannel);
-                std::string mess = ":" + client.getNickname() + "!" + client.getUsername() + "@" + client.getHostname() + " KICK " + tempChannel.getName() + " " + clientToKick.getNickname() + "\r\n";
-                send(clientToKick.getClientFd(), mess.c_str(), mess.length(), 0);
-                for(int i = 0; i < (int)tempChannel.channelClients.size(); i++)
-                    send(tempChannel.channelClients[i].getClientFd(), mess.c_str(), mess.length(), 0);
-            }
-            else
-            {
-                //channel içerisinde kicklenen client yok
+                if(tempChannel.getOperatorArray()[i].getClientFd() == tempClient.getClientFd())
+                {
+                    if(checkChannel(clientToKick, tempChannel))
+                    {
+                        deleteChannelClient(clientToKick.getClientFd(), tempChannel);
+                        std::string mess = ":" + client.getNickname() + "!" + client.getUsername() + "@" + client.getHostname() + " KICK " + tempChannel.getName() + " " + clientToKick.getNickname() + "\r\n";
+                        send(clientToKick.getClientFd(), mess.c_str(), mess.length(), 0);
+                        for(int i = 0; i < (int)tempChannel.channelClients.size(); i++)
+                            send(tempChannel.channelClients[i].getClientFd(), mess.c_str(), mess.length(), 0);
+                    }
+                }
             }
         }
-        else
+    }
+}
+
+void Server::topicCommand(int i, std::string channelName, std::string topicMessage) {
+    Channel &tempChannel = *getFindChannel(channelName);
+    Client &tempClient = *findClient_WFD(i);
+
+    if(&tempChannel != nullptr)
+    {
+        if(&tempClient != nullptr)
         {
-            //kicklenecek client yok
+            for (int i = 0; i < (int)tempChannel.getOperatorArray().size(); i++)
+            {
+                if(tempChannel.getOperatorArray()[i].getClientFd() == tempClient.getClientFd())
+                {
+                    tempChannel.setTopic(topicMessage);
+                    for (int k = 0; k < (int)tempChannel.channelClients.size(); k++) {
+                        std::string msg =  ": 332 " + tempChannel.channelClients[k].getNickname() + " " + tempChannel.getName() + " : " + tempChannel.getTopic() + "\r\n";
+                        send(tempChannel.channelClients[k].getClientFd(), msg.c_str(), msg.length(), 0);
+                    }
+                    return ;
+                }
+            }
         }
     }
     else
     {
-        //channel yok
+        std::string msg = ": 403 : " + tempClient.getNickname() + " There is no channel\r\n";
+        send(tempClient.getClientFd(), msg.c_str(), msg.length(), 0);
     }
-}
-
-void Server::sendTopic(int i, std::string channelName, std::string topicMessage) {
-
-
-     for (int j = 0; j < (int)channelArray.size(); j++) 
-    {
-        printf("+++++%d\n", j);
-        if (channelName == channelArray[j].getName()) 
-        {
-            flag = 1;
-            if (clientArray[i].getSocketFd() == channelArray[j].getOperator())
-            {
-                channelArray[j].setTopic(topicMessage);
-                for (int k = 0; k < (int)channelArray[j].channelClients.size(); k++) {
-                    std::string msg =  ": 332 " + channelArray[j].channelClients[k].getNickname() + " " + channelArray[j].getName() + " : " + channelArray[j].getTopic() + "\r\n";
-                    sendFunct(channelArray[j].channelClients[k].getSocketFd(), msg);
-                }
-                return;
-            }
-            else
-                sendFunct(clientArray[i].getSocketFd(), ": 403 : " +  clientArray[i].getNickname() + "you are not operator!\r\n");
-            break;
-        }
-    }
-    if (flag == 0)
-        sendFunct(clientArray[i].getSocketFd(),": 403 : " + clientArray[i].getNickname() + " There is no channel\r\n");
 }

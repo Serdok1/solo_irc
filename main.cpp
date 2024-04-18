@@ -14,8 +14,7 @@ void acceptSetClient(Server *server, fd_set &current_sockets, int &max_socket){
         }
         Client client = Client(server->getNewSocket());
         server->addNewClient(client);
-        printf("selectServer: new connection from %s on "
-                "socket %d\n", inet_ntoa(server->getSocketAddress().sin_addr), server->getNewSocket());
+        std::cout << "selectServer: new connection from " << inet_ntoa(server->getSocketAddress().sin_addr) << "on socket " <<  server->getNewSocket() << std::endl;
     }
 }
 
@@ -44,7 +43,7 @@ void handleClient(Server *server, int i, fd_set &current_sockets){
         std::string token, user, pass, nick;
         Client &tempClient = *server->findClient_WFD(i);
         while (iss >> token) {
-            if (token == "NICK"){
+            if (token == "NICK" && !tempClient.getIsAuth()){
                 iss >> nick;
                 tempClient.setNickname(nick);
             }
@@ -104,7 +103,7 @@ void handleClient(Server *server, int i, fd_set &current_sockets){
                     channelName = "#" + channelName;
                 iss >> nickToKick;
                 if (!channelName.empty() && !nickToKick.empty())
-                    server->kickCommand(tempClient, channelName, nickToKick);
+                    server->kickCommand(tempClient, channelName, nickToKick, i);
             }
             else if (token == "TOPIC") {
                 std::string temp, topicMessage, channelName;
@@ -116,7 +115,7 @@ void handleClient(Server *server, int i, fd_set &current_sockets){
                     topicMessage += " ";
                 }
                 if (!topicMessage.empty() && !channelName.empty()) {
-                    sendTopic(i, channelName, topicMessage);
+                    server->topicCommand(i, channelName, topicMessage);
                 }
             }
             else if(token == "QUIT"){
@@ -180,7 +179,6 @@ int main(int ac, char **av){
     std::string user,nick,pass;
     while(1)
     {
-        //because select is destructive
         ready_sockets = current_sockets;
 
         if(select(max_socket + 1, &ready_sockets, NULL, NULL, NULL) < 0){
@@ -209,12 +207,5 @@ int main(int ac, char **av){
                 std::cout << server->getChannelArray()[i].getName() << " operator is: " << server->getChannelArray()[i].getOperatorArray()[j].getNickname() << std::endl;
             }
         }
-        /* std::cout << (int)server->getClientArray().size() << std::endl;
-        for(int i = 0; i < (int)server->getClientArray().size(); i++)
-        {
-            std::cout<< "Username: " << server->getClientArray()[i].getUsername()\
-            << " Nickname: " << server->getClientArray()[i].getNickname() << " socket_fd: "\
-            << server->getClientArray()[i].getClientFd() << std::endl;
-        } */
     }
 }
