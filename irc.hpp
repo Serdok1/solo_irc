@@ -20,4 +20,22 @@
 
     #include "Messages.hpp"
 
+    class   Server;
+    class   Client;
+    void    acceptSetClient(Server *server, fd_set &current_sockets, int &max_socket);
+    void    authenticateClient(Client &client);
+    bool    clientCanAuthenticate(Client &client);
+    void    handleQuit(Server *server, int i, fd_set &current_sockets);
+    void    handleClient(Server *server, int i, fd_set &current_sockets);
+    void    handleNickCommand(std::istringstream &iss, Client &client);
+    void    handlePassCommand(std::istringstream &iss, Client &client, Server *server);
+    void    handleUserCommand(std::istringstream &iss, Client &client);
+    void    handleJoinCommand(std::istringstream &iss, Client &client, Server *server);
+    void    handlePrivmsgCommand(std::istringstream &iss, Client &client, Server *server, const std::string &buffer);
+    void    handleNoticeCommand(std::istringstream &iss, Client &client, Server *server, const std::string &buffer);
+    void    handlePartCommand(std::istringstream &iss, Client &client, Server *server);
+    void    handleKickCommand(std::istringstream &iss, Client &client, Server *server, int clientSocket);
+    void    handleTopicCommand(std::istringstream &iss, Server *server, int clientSocket);
+    void    initServer(Server *server);
+
 #endif

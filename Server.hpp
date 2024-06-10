@@ -64,6 +64,10 @@ class Server{
         void                    partCommand(Client *client, std::string part_name);
         void                    checkOperator(Channel &channel, Client &client);
         void                    topicCommand(int i, std::string channelName, std::string topicMessage);
+
+        void                    acceptSetClient(Server *server, fd_set &current_sockets, int &max_socket);
+        void                    handleQuit(Server *server, int i, fd_set &current_sockets);
+        void                    handleClient(Server *server, int i, fd_set &current_sockets);
 };
 
 #endif
